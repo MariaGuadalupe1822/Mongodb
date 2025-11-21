@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Libros</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .user-info {
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .libros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+        .libro-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #007bff;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .libro-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .libro-titulo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .libro-info {
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+        .libro-precio {
+            font-size: 20px;
+            font-weight: bold;
+            color: #28a745;
+            margin: 15px 0;
+        }
+        .libro-stock {
+            color: #6c757d;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .compra-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        .cantidad-input {
+            width: 60px;
+            padding: 5px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .alert {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .carrito-badge {
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .libro-descripcion {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        @media (max-width: 768px) {
+            .header-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .nav-buttons {
+                justify-content: center;
+            }
+            .libros-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <h1>📚 Catálogo de Libros</h1>
+            <div class="nav-buttons">
+                <span class="user-info">Bienvenido: {{ session.cliente_nombre }}</span>
+                <a href="{{ url_for('ver_carrito') }}" class="btn btn-warning">
+                    🛒 Carrito 
+                    {% if session.carrito %}
+                    <span class="carrito-badge">{{ session.carrito|length }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('mis_compras') }}" class="btn btn-primary">📦 Mis Compras</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary">🚪 Cerrar Sesión</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if libros %}
+            <div class="libros-grid">
+                {% for libro in libros %}
+                <div class="libro-card">
+                    <div class="libro-titulo">{{ libro.nombre }}</div>
+                    <div class="libro-info"><strong>Autor:</strong> {{ libro.autor }}</div>
+                    <div class="libro-info"><strong>Género:</strong> {{ libro.genero }}</div>
+                    <div class="libro-info"><strong>Año:</strong> {{ libro.anio_publicacion }}</div>
+                    <div class="libro-info"><strong>ISBN:</strong> {{ libro.isbn }}</div>
+                    {% if libro.descripcion %}
+                    <div class="libro-descripcion">{{ libro.descripcion }}</div>
+                    {% endif %}
+                    <div class="libro-precio">${{ "%.2f"|format(libro.precio) }}</div>
+                    <div class="libro-stock">Stock disponible: {{ libro.stock }}</div>
+                    
+                    {% if libro.stock > 0 %}
+                    <div class="compra-form">
+                        <div class="form-group">
+                            <label><strong>Cantidad:</strong></label>
+                            <input type="number" class="cantidad-input" id="cantidad-{{ libro._id }}" value="1" min="1" max="{{ libro.stock }}">
+                        </div>
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-success" onclick="agregarAlCarrito('{{ libro._id }}')">
+                                🛒 Agregar al Carrito
+                            </button>
+                            <form method="POST" action="{{ url_for('comprar_directo') }}" style="display: inline;">
+                                <input type="hidden" name="libro_id" value="{{ libro._id }}">
+                                <input type="hidden" name="cantidad" id="cantidad-directo-{{ libro._id }}" value="1">
+                                <button type="button" class="btn btn-primary" onclick="comprarDirecto('{{ libro._id }}')">
+                                    ⚡ Comprar Ahora
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="color: #dc3545; margin-top: 10px; font-weight: bold;">❌ Agotado</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 40px;">
+                <h3>No hay libros disponibles en el catálogo</h3>
+                <p>Por favor, regresa más tarde.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function agregarAlCarrito(libroId) {
+            const cantidad = document.getElementById('cantidad-' + libroId).value;
+            
+            fetch('{{ url_for("agregar_carrito") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'libro_id=' + libroId + '&cantidad=' + cantidad
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    // Actualizar contador del carrito
+                    const carritoBadge = document.querySelector('.carrito-badge');
+                    if (carritoBadge) {
+                        carritoBadge.textContent = data.carrito_count;
+                    } else {
+                        // Crear badge si no existe
+                        const carritoBtn = document.querySelector('.btn-warning');
+                        carritoBtn.innerHTML = '🛒 Carrito <span class="carrito-badge">' + data.carrito_count + '</span>';
+                    }
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Error al agregar al carrito');
+            });
+        }
+
+        function comprarDirecto(libroId) {
+            const cantidad = document.getElementById('cantidad-' + libroId).value;
+            document.getElementById('cantidad-directo-' + libroId).value = cantidad;
+            
+            if (confirm('¿Estás seguro de que quieres comprar este libro ahora?')) {
+                document.querySelector('form input[name="libro_id"][value="' + libroId + '"]').closest('form').submit();
+            }
+        }
+
+        // Validar cantidades al cambiar
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('.cantidad-input');
+            inputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const max = parseInt(this.max);
+                    const value = parseInt(this.value);
+                    if (value > max) {
+                        this.value = max;
+                        alert('La cantidad no puede ser mayor al stock disponible');
+                    } else if (value < 1) {
+                        this.value = 1;
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
