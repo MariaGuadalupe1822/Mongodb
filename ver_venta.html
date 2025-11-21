@@ -2,355 +2,185 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Detalles de Venta - Biblioteca Digital</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles de Venta</title>
     <style>
-        :root {
-            --primary: #4361ee;
-            --primary-dark: #3a56d4;
-            --secondary: #7209b7;
-            --success: #4cc9f0;
-            --danger: #f72585;
-            --warning: #f8961e;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --gray: #6c757d;
-            --gray-light: #e9ecef;
-            --border-radius: 12px;
-            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            --transition: all 0.3s ease;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
-            color: var(--dark);
-            line-height: 1.6;
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
         }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .header .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 24px;
-            font-weight: 700;
-            text-decoration: none;
-            color: white;
-        }
-
-        .logo-icon {
-            background: rgba(255, 255, 255, 0.2);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .header .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 8px 16px;
-            border-radius: 50px;
-            transition: var(--transition);
-        }
-
-        .header .user-profile:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
-
-        .header .user-profile img {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .nav-menu {
-            background: white;
-            padding: 15px 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .nav-menu a {
-            margin-right: 20px;
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: var(--transition);
-        }
-
-        .nav-menu a:hover, .nav-menu a.active {
-            background: var(--primary);
-            color: white;
-        }
-
         .container {
-            width: 95%;
-            max-width: 1000px;
-            margin: 30px auto;
-            background-color: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
+            background: white;
             padding: 30px;
-            position: relative;
-            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin: 0 auto;
         }
-
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-        }
-
         h1 {
-            font-size: 28px;
-            color: var(--dark);
+            color: #333;
             margin-bottom: 30px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            text-align: center;
         }
-
-        h1 i {
-            color: var(--primary);
-        }
-
-        .sale-info {
+        .sections-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 30px;
         }
-
-        .info-card {
-            background: var(--light);
+        .info-section {
+            background: #f8f9fa;
             padding: 20px;
-            border-radius: var(--border-radius);
-            border-left: 4px solid var(--primary);
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
         }
-
-        .info-card h3 {
-            color: var(--dark);
+        .info-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .info-item {
             margin-bottom: 10px;
-            font-size: 16px;
         }
-
-        .info-card p {
-            color: var(--gray);
-            margin: 0;
+        .info-label {
+            font-weight: bold;
+            color: #555;
         }
-
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
-            background: white;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 20px;
         }
-
-        .items-table th {
-            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-            padding: 15px;
+        .items-table th, .items-table td {
+            padding: 12px;
             text-align: left;
-            font-weight: 600;
-            color: var(--dark);
-            border-bottom: 2px solid var(--gray-light);
+            border-bottom: 1px solid #ddd;
         }
-
-        .items-table td {
-            padding: 15px;
-            border-bottom: 1px solid var(--gray-light);
+        .items-table th {
+            background-color: #e9ecef;
+            font-weight: bold;
         }
-
-        .items-table tr:last-child td {
-            border-bottom: none;
-        }
-
         .total-section {
-            background: var(--light);
-            padding: 25px;
-            border-radius: var(--border-radius);
+            background: #d4edda;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
             text-align: right;
-            border: 2px solid var(--success);
-            margin-bottom: 30px;
+            font-size: 20px;
+            font-weight: bold;
         }
-
-        .total-amount {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--success);
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid var(--gray-light);
-        }
-
         .btn {
-            padding: 12px 24px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-back {
-            background: transparent;
-            color: var(--gray);
-            border: 2px solid var(--gray-light);
-        }
-
-        .btn-back:hover {
-            background: var(--gray-light);
-            color: var(--dark);
-        }
-
-        .btn-pdf {
-            background: linear-gradient(135deg, var(--danger) 0%, #e63946 100%);
-            color: white;
+            padding: 10px 20px;
             border: none;
-            box-shadow: 0 4px 12px rgba(247, 37, 133, 0.3);
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 10px;
         }
-
-        .btn-pdf:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(247, 37, 133, 0.4);
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
         }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: var(--border-radius);
-            margin-bottom: 20px;
-            font-weight: 500;
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
         }
-
-        .alert-success {
-            background: rgba(76, 201, 240, 0.1);
-            color: var(--success);
-            border: 1px solid var(--success);
+        .actions {
+            margin-top: 30px;
+            text-align: center;
         }
-
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-online {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-presencial {
+            background-color: #007bff;
+            color: white;
+        }
         @media (max-width: 768px) {
-            .sale-info {
+            .sections-container {
                 grid-template-columns: 1fr;
-            }
-            
-            .items-table {
-                display: block;
-                overflow-x: auto;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .btn {
-                justify-content: center;
             }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <a href="{{ url_for('dashboard') }}" class="logo">
-            <div class="logo-icon">
-                <i class="fas fa-book-open"></i>
-            </div>
-            Biblioteca Digital
-        </a>
-        <div class="user-profile">
-            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="User Avatar">
-            <span>{{ session.usuario_nombre }}</span>
-        </div>
-    </div>
-
-    <div class="nav-menu">
-        <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-bar"></i> Dashboard</a>
-        <a href="{{ url_for('listar_libros') }}"><i class="fas fa-book"></i> Libros</a>
-        <a href="{{ url_for('listar_clientes') }}"><i class="fas fa-users"></i> Clientes</a>
-        <a href="{{ url_for('listar_ventas') }}" class="active"><i class="fas fa-shopping-cart"></i> Ventas</a>
-        <a href="{{ url_for('logout') }}" style="float: right; color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
-    </div>
-
     <div class="container">
-        <h1>
-            <i class="fas fa-receipt"></i>
-            Detalles de Venta
-        </h1>
+        <h1>📋 Detalles de Venta</h1>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        <i class="fas fa-check-circle"></i>
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        <div class="sections-container">
+            <div class="info-section">
+                <h3>📊 Información de la Venta</h3>
+                <div class="info-item">
+                    <span class="info-label">ID Venta:</span> {{ venta._id }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Fecha:</span> {{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Estado:</span> {{ venta.estado }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Tipo:</span> 
+                    <span class="badge badge-{{ 'online' if venta.tipo == 'online' else 'presencial' }}">
+                        {{ venta.tipo|default('presencial') }}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Total:</span> ${{ "%.2f"|format(venta.total) }}
+                </div>
+            </div>
 
-        <div class="sale-info">
-            <div class="info-card">
-                <h3><i class="fas fa-hashtag"></i> Número de Venta</h3>
-                <p>#{{ venta._id }}</p>
-            </div>
-            <div class="info-card">
-                <h3><i class="fas fa-user"></i> Cliente</h3>
-                <p>{{ venta.cliente_nombre }}</p>
-            </div>
-            <div class="info-card">
-                <h3><i class="fas fa-calendar"></i> Fecha y Hora</h3>
-                <p>{{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}</p>
-            </div>
-            <div class="info-card">
-                <h3><i class="fas fa-check-circle"></i> Estado</h3>
-                <p style="color: var(--success); font-weight: 600;">{{ venta.estado }}</p>
+            <div class="info-section">
+                <h3>👤 Información del Cliente</h3>
+                <div class="info-item">
+                    <span class="info-label">Nombre:</span> {{ venta.cliente_nombre }}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email:</span> {{ venta.cliente_email }}
+                </div>
+                {% if venta.cliente_telefono %}
+                <div class="info-item">
+                    <span class="info-label">Teléfono:</span> {{ venta.cliente_telefono }}
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <span class="info-label">ID Cliente:</span> {{ venta.cliente_id }}
+                </div>
             </div>
         </div>
 
+        {% if venta.usuario_nombre %}
+        <div class="info-section">
+            <h3>👨‍💼 Información del Vendedor</h3>
+            <div class="info-item">
+                <span class="info-label">Vendedor:</span> {{ venta.usuario_nombre }}
+            </div>
+            {% if venta.usuario_id %}
+            <div class="info-item">
+                <span class="info-label">ID Vendedor:</span> {{ venta.usuario_id }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <h3>📚 Libros Vendidos</h3>
         <table class="items-table">
             <thead>
                 <tr>
-                    <th>Producto</th>
+                    <th>Libro</th>
+                    <th>Autor</th>
+                    <th>Género</th>
                     <th>Cantidad</th>
                     <th>Precio Unitario</th>
                     <th>Subtotal</th>
@@ -359,32 +189,26 @@
             <tbody>
                 {% for item in venta.items %}
                 <tr>
-                    <td>
-                        <strong>{{ item.titulo }}</strong>
-                    </td>
+                    <td><strong>{{ item.titulo }}</strong></td>
+                    <td>{{ item.autor }}</td>
+                    <td>{{ item.genero }}</td>
                     <td>{{ item.cantidad }}</td>
                     <td>${{ "%.2f"|format(item.precio_unitario) }}</td>
-                    <td style="font-weight: 600; color: var(--success);">
-                        ${{ "%.2f"|format(item.subtotal) }}
-                    </td>
+                    <td><strong>${{ "%.2f"|format(item.subtotal) }}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
         <div class="total-section">
-            <h3>Total de la Venta: <span class="total-amount">${{ "%.2f"|format(venta.total) }}</span></h3>
+            TOTAL DE LA VENTA: ${{ "%.2f"|format(venta.total) }}
         </div>
 
-        <div class="action-buttons">
-            <a href="{{ url_for('listar_ventas') }}" class="btn btn-back">
-                <i class="fas fa-arrow-left"></i>
-                Volver a Ventas
+        <div class="actions">
+            <a href="{{ url_for('comprobante_venta', id=venta._id) }}" class="btn btn-primary" target="_blank">
+                📄 Generar Comprobante PDF
             </a>
-            <a href="{{ url_for('comprobante_venta', id=venta._id) }}" class="btn btn-pdf" target="_blank">
-                <i class="fas fa-file-pdf"></i>
-                Generar Comprobante PDF
-            </a>
+            <a href="{{ url_for('listar_ventas') }}" class="btn btn-secondary">← Volver al Historial</a>
         </div>
     </div>
 </body>

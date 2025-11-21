@@ -187,8 +187,9 @@ def dashboard():
         # Ventas recientes para el dashboard
         ventas_recientes = list(coleccion_ventas.find().sort('fecha_venta', -1).limit(5))
         for venta in ventas_recientes:
-            cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})
-            venta['cliente_nombre'] = cliente['nombre'] if cliente else 'Cliente no encontrado'
+            if 'cliente_nombre' not in venta:
+                cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})
+                venta['cliente_nombre'] = cliente['nombre'] if cliente else 'Cliente no encontrado'
         
         return render_template('dashboard.html',
                              total_libros=total_libros,
@@ -483,22 +484,21 @@ def eliminar_cliente(id):
 @login_required
 def listar_ventas():
     try:
+        # CORREGIDO: Convertir cursor a lista correctamente
         ventas_cursor = coleccion_ventas.find().sort('fecha_venta', -1)
-        ventas = list(ventas_cursor)  # Convertir cursor a lista
+        ventas = list(ventas_cursor)
         
         for venta in ventas:
-            # Obtener información del cliente
-            cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})
-            venta['cliente_nombre'] = cliente['nombre'] if cliente else 'Cliente no encontrado'
+            # Asegurarse de que tenemos información del cliente
+            if 'cliente_nombre' not in venta:
+                cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})
+                venta['cliente_nombre'] = cliente['nombre'] if cliente else 'Cliente no encontrado'
+                venta['cliente_email'] = cliente['email'] if cliente else ''
             
-            # Obtener información del usuario que realizó la venta
-            if 'usuario_id' in venta:
+            # Asegurarse de que tenemos información del usuario
+            if 'usuario_nombre' not in venta and 'usuario_id' in venta:
                 usuario = coleccion_usuarios.find_one({'_id': ObjectId(venta['usuario_id'])})
                 venta['usuario_nombre'] = usuario['nombre'] if usuario else 'Usuario no encontrado'
-            
-            # Calcular total si no existe
-            if 'total' not in venta:
-                venta['total'] = sum(item.get('subtotal', 0) for item in venta.get('items', []))
         
         return render_template('ventas.html', ventas=ventas)
     except Exception as e:
@@ -531,9 +531,13 @@ def nueva_venta():
                         subtotal = precio * cantidad
                         total_venta += subtotal
                         
+                        # Guardar información completa del libro
                         items.append({
                             'libro_id': str(libro['_id']),
                             'titulo': libro['nombre'],
+                            'autor': libro.get('autor', ''),
+                            'genero': libro.get('genero', ''),
+                            'isbn': libro.get('isbn', ''),
                             'cantidad': cantidad,
                             'precio_unitario': precio,
                             'subtotal': subtotal
@@ -554,19 +558,22 @@ def nueva_venta():
                 flash('Agrega al menos un libro a la venta', 'error')
                 return redirect(url_for('nueva_venta'))
             
-            # Obtener información del cliente para guardar en la venta
+            # Obtener información completa del cliente
             cliente = coleccion_clientes.find_one({'_id': ObjectId(cliente_id)})
             
+            # Crear venta con información completa
             venta = {
                 'cliente_id': cliente_id,
                 'cliente_nombre': cliente['nombre'] if cliente else 'Cliente no encontrado',
                 'cliente_email': cliente['email'] if cliente else '',
+                'cliente_telefono': cliente.get('telefono', ''),
                 'usuario_id': session['usuario_id'],
                 'usuario_nombre': session['usuario_nombre'],
                 'items': items,
                 'total': total_venta,
                 'fecha_venta': datetime.now(),
-                'estado': 'completada'
+                'estado': 'completada',
+                'tipo': 'presencial'
             }
             
             resultado = coleccion_ventas.insert_one(venta)
@@ -589,11 +596,12 @@ def ver_venta(id):
             flash('Venta no encontrada', 'error')
             return redirect(url_for('listar_ventas'))
         
-        # Si la venta no tiene información del cliente, obtenerla
+        # Si la venta no tiene información completa, completarla
         if 'cliente_nombre' not in venta:
             cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})
             venta['cliente_nombre'] = cliente['nombre'] if cliente else 'Cliente no encontrado'
             venta['cliente_email'] = cliente['email'] if cliente else ''
+            venta['cliente_telefono'] = cliente.get('telefono', '')
         
         return render_template('ver_venta.html', venta=venta)
     except Exception as e:
@@ -611,42 +619,96 @@ def comprobante_venta(id):
         # Crear PDF
         buffer = io.BytesIO()
         pdf = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
         
         # Encabezado
-        pdf.setFont("Helvetica-Bold", 16)
-        pdf.drawString(100, 750, "BIBLIOTECA DIGITAL - COMPROBANTE DE VENTA")
-        pdf.line(100, 745, 500, 745)
+        pdf.setFont("Helvetica-Bold", 18)
+        pdf.drawString(100, height - 50, "BIBLIOTECA DIGITAL - COMPROBANTE DE VENTA")
+        pdf.line(100, height - 55, 500, height - 55)
         
         # Información de la venta
-        pdf.setFont("Helvetica", 12)
-        pdf.drawString(100, 720, f"Venta ID: {str(venta['_id'])}")
-        pdf.drawString(100, 700, f"Fecha: {venta['fecha_venta'].strftime('%d/%m/%Y %H:%M')}")
-        pdf.drawString(100, 680, f"Cliente: {venta.get('cliente_nombre', 'N/A')}")
-        pdf.drawString(100, 660, f"Email: {venta.get('cliente_email', 'N/A')}")
-        pdf.drawString(100, 640, f"Vendedor: {venta.get('usuario_nombre', 'N/A')}")
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(100, height - 80, "INFORMACIÓN DE LA VENTA:")
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(100, height - 95, f"Venta ID: {str(venta['_id'])}")
+        pdf.drawString(100, height - 110, f"Fecha: {venta['fecha_venta'].strftime('%d/%m/%Y %H:%M')}")
+        pdf.drawString(100, height - 125, f"Estado: {venta.get('estado', 'Completada')}")
         
-        # Items
-        pdf.drawString(100, 610, "DETALLE DE LA COMPRA:")
-        y = 590
+        # Información del cliente
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(100, height - 150, "INFORMACIÓN DEL CLIENTE:")
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(100, height - 165, f"Nombre: {venta.get('cliente_nombre', 'N/A')}")
+        pdf.drawString(100, height - 180, f"Email: {venta.get('cliente_email', 'N/A')}")
+        if venta.get('cliente_telefono'):
+            pdf.drawString(100, height - 195, f"Teléfono: {venta['cliente_telefono']}")
         
+        # Información del vendedor
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(100, height - 220, "INFORMACIÓN DEL VENDEDOR:")
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(100, height - 235, f"Vendedor: {venta.get('usuario_nombre', 'N/A')}")
+        
+        # Items - Tabla
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(100, height - 260, "DETALLE DE LA COMPRA:")
+        
+        # Encabezados de la tabla
+        y = height - 280
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(100, y, "Libro")
+        pdf.drawString(300, y, "Cant.")
+        pdf.drawString(350, y, "Precio Unit.")
+        pdf.drawString(450, y, "Subtotal")
+        
+        y -= 20
+        pdf.line(100, y, 500, y)
+        y -= 10
+        
+        # Items de la venta
+        pdf.setFont("Helvetica", 9)
         for item in venta.get('items', []):
             if y < 100:  # Nueva página si es necesario
                 pdf.showPage()
-                y = 750
-                pdf.setFont("Helvetica", 12)
+                y = height - 50
+                pdf.setFont("Helvetica", 9)
             
-            pdf.drawString(120, y, f"• {item['titulo']}")
-            pdf.drawString(350, y, f"{item['cantidad']} x ${item['precio_unitario']:.2f}")
-            pdf.drawString(480, y, f"${item['subtotal']:.2f}")
+            # Título del libro (puede ser multilínea)
+            titulo = item['titulo']
+            if len(titulo) > 40:
+                titulo = titulo[:37] + "..."
+            
+            pdf.drawString(100, y, titulo)
+            pdf.drawString(300, y, str(item['cantidad']))
+            pdf.drawString(350, y, f"${item['precio_unitario']:.2f}")
+            pdf.drawString(450, y, f"${item['subtotal']:.2f}")
+            
+            # Información adicional del libro si cabe
+            if y > 120:
+                info_extra = f"Autor: {item.get('autor', 'N/A')} | Género: {item.get('genero', 'N/A')}"
+                if len(info_extra) > 70:
+                    info_extra = info_extra[:67] + "..."
+                y -= 12
+                pdf.setFont("Helvetica-Oblique", 8)
+                pdf.drawString(100, y, info_extra)
+                pdf.setFont("Helvetica", 9)
+            
             y -= 20
         
+        # Línea final
+        y -= 10
+        pdf.line(100, y, 500, y)
+        
         # Total
-        pdf.setFont("Helvetica-Bold", 14)
-        pdf.drawString(400, y-30, f"TOTAL: ${venta.get('total', 0):.2f}")
+        y -= 20
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(400, y, f"TOTAL: ${venta.get('total', 0):.2f}")
         
         # Pie de página
+        y -= 40
         pdf.setFont("Helvetica-Oblique", 10)
-        pdf.drawString(100, 50, "¡Gracias por su compra! - Biblioteca Digital")
+        pdf.drawString(100, y, "¡Gracias por su compra! - Biblioteca Digital")
+        pdf.drawString(100, y - 15, "Sistema de Gestión de Libros")
         
         pdf.save()
         buffer.seek(0)
@@ -714,6 +776,7 @@ def agregar_carrito():
             carrito.append({
                 'libro_id': libro_id,
                 'titulo': libro['nombre'],
+                'autor': libro.get('autor', ''),
                 'precio': libro['precio'],
                 'cantidad': cantidad,
                 'subtotal': libro['precio'] * cantidad
@@ -834,6 +897,9 @@ def comprar_carrito():
             items.append({
                 'libro_id': str(libro['_id']),
                 'titulo': libro['nombre'],
+                'autor': libro.get('autor', ''),
+                'genero': libro.get('genero', ''),
+                'isbn': libro.get('isbn', ''),
                 'cantidad': item_carrito['cantidad'],
                 'precio_unitario': libro['precio'],
                 'subtotal': item_carrito['subtotal']
@@ -848,7 +914,7 @@ def comprar_carrito():
                 {'$set': {'stock': nuevo_stock}}
             )
         
-        # Crear venta
+        # Crear venta con información completa
         venta = {
             'cliente_id': session['cliente_id'],
             'cliente_nombre': session['cliente_nombre'],
@@ -889,10 +955,13 @@ def comprar_directo():
             flash('Stock insuficiente', 'error')
             return redirect(url_for('catalogo_cliente'))
         
-        # Crear venta con un solo item
+        # Crear venta con información completa
         items = [{
             'libro_id': str(libro['_id']),
             'titulo': libro['nombre'],
+            'autor': libro.get('autor', ''),
+            'genero': libro.get('genero', ''),
+            'isbn': libro.get('isbn', ''),
             'cantidad': cantidad,
             'precio_unitario': libro.get('precio', 0),
             'subtotal': libro.get('precio', 0) * cantidad
@@ -929,7 +998,7 @@ def comprar_directo():
 def mis_compras():
     try:
         ventas_cursor = coleccion_ventas.find({'cliente_id': session['cliente_id']}).sort('fecha_venta', -1)
-        ventas = list(ventas_cursor)  # Convertir cursor a lista
+        ventas = list(ventas_cursor)
         return render_template('mis_compras.html', ventas=ventas)
     except Exception as e:
         flash(f'Error al cargar compras: {e}', 'error')
