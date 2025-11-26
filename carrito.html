@@ -96,40 +96,49 @@
         .btn-danger:hover {
             background-color: #c82333;
         }
-        .total-section {
+        .resumen-section {
             background: #e9ecef;
-            padding: 20px;
-            border-radius: 5px;
-            text-align: right;
+            padding: 25px;
+            border-radius: 8px;
             margin-bottom: 20px;
         }
-        .total-amount {
-            font-size: 24px;
+        .resumen-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 16px;
+        }
+        .resumen-total {
+            font-size: 20px;
             font-weight: bold;
             color: #28a745;
+            border-top: 2px solid #28a745;
+            padding-top: 12px;
+            margin-top: 12px;
         }
         .cantidad-input {
-            width: 60px;
-            padding: 5px;
+            width: 70px;
+            padding: 8px;
             border: 1px solid #ddd;
-            border-radius: 3px;
+            border-radius: 4px;
             text-align: center;
         }
         .empty-cart {
             text-align: center;
-            padding: 40px;
+            padding: 60px 20px;
             color: #6c757d;
         }
         .empty-cart i {
-            font-size: 48px;
+            font-size: 64px;
             margin-bottom: 20px;
             display: block;
         }
         .action-buttons {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: flex-end;
             flex-wrap: wrap;
+            margin-top: 20px;
         }
         .alert {
             padding: 12px;
@@ -146,6 +155,11 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+        .iva-info {
+            font-size: 12px;
+            color: #6c757d;
+            font-style: italic;
+        }
         @media (max-width: 768px) {
             .header-actions {
                 flex-direction: column;
@@ -159,6 +173,9 @@
             }
             .action-buttons {
                 justify-content: center;
+            }
+            .resumen-section {
+                padding: 15px;
             }
         }
     </style>
@@ -197,7 +214,8 @@
                     {% for item in carrito %}
                     <tr>
                         <td>
-                            <strong>{{ item.titulo }}</strong>
+                            <strong>{{ item.titulo }}</strong><br>
+                            <small class="iva-info">por {{ item.autor }}</small>
                         </td>
                         <td>${{ "%.2f"|format(item.precio) }}</td>
                         <td>
@@ -218,8 +236,24 @@
                 </tbody>
             </table>
 
-            <div class="total-section">
-                <h3>Total del Carrito: <span class="total-amount">${{ "%.2f"|format(total) }}</span></h3>
+            <!-- Resumen con IVA -->
+            <div class="resumen-section">
+                <h3 style="margin-top: 0; color: #333;">Resumen de Compra</h3>
+                <div class="resumen-item">
+                    <span>Subtotal:</span>
+                    <span>${{ "%.2f"|format(subtotal) }}</span>
+                </div>
+                <div class="resumen-item">
+                    <span>IVA (16%):</span>
+                    <span>${{ "%.2f"|format(iva) }}</span>
+                </div>
+                <div class="resumen-item resumen-total">
+                    <span>TOTAL:</span>
+                    <span>${{ "%.2f"|format(total) }}</span>
+                </div>
+                <div class="iva-info" style="margin-top: 10px; text-align: center;">
+                    * El IVA del 16% está incluido en el total
+                </div>
             </div>
 
             <div class="action-buttons">
@@ -229,7 +263,7 @@
                     </button>
                 </form>
                 <form method="POST" action="{{ url_for('comprar_carrito') }}" style="display: inline;">
-                    <button type="submit" class="btn btn-success" onclick="return confirm('¿Confirmar compra de todos los items del carrito?')">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('¿Confirmar compra de todos los items del carrito por ${{ total|round(2) }}?')">
                         ✅ Proceder al Pago
                     </button>
                 </form>
@@ -262,7 +296,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Recargar la página para mostrar los cambios
                     location.reload();
                 } else {
                     alert('❌ ' + data.message);

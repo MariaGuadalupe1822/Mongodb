@@ -61,6 +61,10 @@
             background-color: #17a2b8;
             color: white;
         }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
         .alert {
             padding: 10px;
             margin-bottom: 20px;
@@ -97,6 +101,14 @@
             font-size: 12px;
             margin-bottom: 2px;
         }
+        .totales-info {
+            font-size: 11px;
+            color: #666;
+        }
+        .total-amount {
+            font-weight: bold;
+            color: #28a745;
+        }
     </style>
 </head>
 <body>
@@ -124,7 +136,7 @@
                         <th>Cliente</th>
                         <th>Fecha</th>
                         <th>Items</th>
-                        <th>Total</th>
+                        <th>Totales</th>
                         <th>Tipo</th>
                         <th>Vendedor</th>
                         <th>Acciones</th>
@@ -146,7 +158,13 @@
                             </div>
                             {% endfor %}
                         </td>
-                        <td><strong>${{ "%.2f"|format(venta.total) }}</strong></td>
+                        <td>
+                            <div class="total-amount">${{ "%.2f"|format(venta.total) }}</div>
+                            <div class="totales-info">
+                                Sub: ${{ "%.2f"|format(venta.subtotal) }}<br>
+                                IVA: ${{ "%.2f"|format(venta.iva) }}
+                            </div>
+                        </td>
                         <td>
                             <span class="badge badge-{{ 'online' if venta.tipo == 'online' else 'presencial' }}">
                                 {{ venta.tipo|default('presencial') }}

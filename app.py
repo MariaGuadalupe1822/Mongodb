@@ -4,11 +4,11 @@ from bson.objectid import ObjectId
 from datetime import datetime
 import hashlib
 import os
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.utils import ImageReader
 import io
 from functools import wraps
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.utils import ImageReader
 
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_biblioteca_2024'
@@ -49,6 +49,10 @@ def cliente_required(f):
             return redirect(url_for('login_cliente'))
         return f(*args, **kwargs)
     return decorated_function
+
+def calcular_iva(subtotal, porcentaje_iva=16):
+    """Calcular IVA basado en el subtotal"""
+    return subtotal * (porcentaje_iva / 100)
 
 # ----------------- INICIALIZAR DATOS -----------------
 def inicializar_datos():
@@ -478,7 +482,7 @@ def eliminar_cliente(id):
     
     return redirect(url_for('listar_clientes'))
 
-# ----------------- VENTAS -----------------
+# ----------------- VENTAS CON IVA -----------------
 
 @app.route('/ventas')
 @login_required
@@ -492,8 +496,14 @@ def listar_ventas():
             # Asegurarse de que tenemos información del cliente
             if 'cliente_nombre' not in venta:
                 cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})
-                venta['cliente_nombre'] = cliente['nombre'] if cliente else 'Cliente no encontrado'
-                venta['cliente_email'] = cliente['email'] if cliente else ''
+                if cliente:
+                    venta['cliente_nombre'] = cliente['nombre']
+                    venta['cliente_email'] = cliente['email']
+                    venta['cliente_telefono'] = cliente.get('telefono', '')
+                else:
+                    venta['cliente_nombre'] = 'Cliente no encontrado'
+                    venta['cliente_email'] = ''
+                    venta['cliente_telefono'] = ''
             
             # Asegurarse de que tenemos información del usuario
             if 'usuario_nombre' not in venta and 'usuario_id' in venta:
@@ -519,7 +529,7 @@ def nueva_venta():
             libro_ids = request.form.getlist('libro_id[]')
             cantidades = request.form.getlist('cantidad[]')
             
-            total_venta = 0
+            subtotal_venta = 0
             
             for i, libro_id in enumerate(libro_ids):
                 if libro_id and cantidades[i] and int(cantidades[i]) > 0:
@@ -529,7 +539,7 @@ def nueva_venta():
                     if libro and libro.get('stock', 0) >= cantidad:
                         precio = libro.get('precio', 0)
                         subtotal = precio * cantidad
-                        total_venta += subtotal
+                        subtotal_venta += subtotal
                         
                         # Guardar información completa del libro
                         items.append({
@@ -558,10 +568,14 @@ def nueva_venta():
                 flash('Agrega al menos un libro a la venta', 'error')
                 return redirect(url_for('nueva_venta'))
             
+            # Calcular IVA y total
+            iva_venta = calcular_iva(subtotal_venta)
+            total_con_iva = subtotal_venta + iva_venta
+            
             # Obtener información completa del cliente
             cliente = coleccion_clientes.find_one({'_id': ObjectId(cliente_id)})
             
-            # Crear venta con información completa
+            # Crear venta con información completa e IVA
             venta = {
                 'cliente_id': cliente_id,
                 'cliente_nombre': cliente['nombre'] if cliente else 'Cliente no encontrado',
@@ -570,14 +584,16 @@ def nueva_venta():
                 'usuario_id': session['usuario_id'],
                 'usuario_nombre': session['usuario_nombre'],
                 'items': items,
-                'total': total_venta,
+                'subtotal': subtotal_venta,
+                'iva': iva_venta,
+                'total': total_con_iva,
                 'fecha_venta': datetime.now(),
                 'estado': 'completada',
                 'tipo': 'presencial'
             }
             
             resultado = coleccion_ventas.insert_one(venta)
-            flash(f'Venta registrada exitosamente! Total: ${total_venta:.2f}', 'success')
+            flash(f'Venta registrada exitosamente! Total con IVA: ${total_con_iva:.2f}', 'success')
             return redirect(url_for('ver_venta', id=resultado.inserted_id))
             
         except Exception as e:
@@ -596,13 +612,6 @@ def ver_venta(id):
             flash('Venta no encontrada', 'error')
             return redirect(url_for('listar_ventas'))
         
-        # Si la venta no tiene información completa, completarla
-        if 'cliente_nombre' not in venta:
-            cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})
-            venta['cliente_nombre'] = cliente['nombre'] if cliente else 'Cliente no encontrado'
-            venta['cliente_email'] = cliente['email'] if cliente else ''
-            venta['cliente_telefono'] = cliente.get('telefono', '')
-        
         return render_template('ver_venta.html', venta=venta)
     except Exception as e:
         flash(f'Error al cargar venta: {e}', 'error')
@@ -618,97 +627,127 @@ def comprobante_venta(id):
         
         # Crear PDF
         buffer = io.BytesIO()
-        pdf = canvas.Canvas(buffer, pagesize=letter)
-        width, height = letter
+        pdf = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        
+        # Configuración inicial
+        pdf.setTitle(f"Comprobante de Venta - {venta['_id']}")
         
         # Encabezado
         pdf.setFont("Helvetica-Bold", 18)
-        pdf.drawString(100, height - 50, "BIBLIOTECA DIGITAL - COMPROBANTE DE VENTA")
-        pdf.line(100, height - 55, 500, height - 55)
+        pdf.drawString(100, height - 50, "BIBLIOTECA DIGITAL")
+        pdf.setFont("Helvetica-Bold", 16)
+        pdf.drawString(100, height - 70, "COMPROBANTE DE VENTA")
+        pdf.line(100, height - 75, 500, height - 75)
         
         # Información de la venta
+        y_position = height - 100
         pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(100, height - 80, "INFORMACIÓN DE LA VENTA:")
+        pdf.drawString(100, y_position, "INFORMACIÓN DE LA VENTA:")
         pdf.setFont("Helvetica", 10)
-        pdf.drawString(100, height - 95, f"Venta ID: {str(venta['_id'])}")
-        pdf.drawString(100, height - 110, f"Fecha: {venta['fecha_venta'].strftime('%d/%m/%Y %H:%M')}")
-        pdf.drawString(100, height - 125, f"Estado: {venta.get('estado', 'Completada')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Folio: {str(venta['_id'])}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Fecha: {venta['fecha_venta'].strftime('%d/%m/%Y')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Hora: {venta['fecha_venta'].strftime('%H:%M:%S')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Estado: {venta.get('estado', 'Completada')}")
         
         # Información del cliente
+        y_position -= 25
         pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(100, height - 150, "INFORMACIÓN DEL CLIENTE:")
+        pdf.drawString(100, y_position, "INFORMACIÓN DEL CLIENTE:")
         pdf.setFont("Helvetica", 10)
-        pdf.drawString(100, height - 165, f"Nombre: {venta.get('cliente_nombre', 'N/A')}")
-        pdf.drawString(100, height - 180, f"Email: {venta.get('cliente_email', 'N/A')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Nombre: {venta.get('cliente_nombre', 'N/A')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Email: {venta.get('cliente_email', 'N/A')}")
         if venta.get('cliente_telefono'):
-            pdf.drawString(100, height - 195, f"Teléfono: {venta['cliente_telefono']}")
+            y_position -= 15
+            pdf.drawString(100, y_position, f"Teléfono: {venta['cliente_telefono']}")
         
         # Información del vendedor
+        y_position -= 25
         pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(100, height - 220, "INFORMACIÓN DEL VENDEDOR:")
+        pdf.drawString(100, y_position, "INFORMACIÓN DEL VENDEDOR:")
         pdf.setFont("Helvetica", 10)
-        pdf.drawString(100, height - 235, f"Vendedor: {venta.get('usuario_nombre', 'N/A')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Atendió: {venta.get('usuario_nombre', 'N/A')}")
         
-        # Items - Tabla
+        # Tabla de productos
+        y_position -= 30
         pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(100, height - 260, "DETALLE DE LA COMPRA:")
+        pdf.drawString(100, y_position, "DETALLE DE PRODUCTOS:")
         
         # Encabezados de la tabla
-        y = height - 280
+        y_position -= 20
         pdf.setFont("Helvetica-Bold", 10)
-        pdf.drawString(100, y, "Libro")
-        pdf.drawString(300, y, "Cant.")
-        pdf.drawString(350, y, "Precio Unit.")
-        pdf.drawString(450, y, "Subtotal")
+        pdf.drawString(100, y_position, "Producto")
+        pdf.drawString(300, y_position, "Cant.")
+        pdf.drawString(350, y_position, "Precio Unit.")
+        pdf.drawString(450, y_position, "Subtotal")
         
-        y -= 20
-        pdf.line(100, y, 500, y)
-        y -= 10
+        y_position -= 10
+        pdf.line(100, y_position, 500, y_position)
+        y_position -= 10
         
         # Items de la venta
         pdf.setFont("Helvetica", 9)
         for item in venta.get('items', []):
-            if y < 100:  # Nueva página si es necesario
+            if y_position < 150:  # Nueva página si es necesario
                 pdf.showPage()
-                y = height - 50
+                y_position = height - 50
                 pdf.setFont("Helvetica", 9)
             
-            # Título del libro (puede ser multilínea)
+            # Título del libro
             titulo = item['titulo']
             if len(titulo) > 40:
                 titulo = titulo[:37] + "..."
             
-            pdf.drawString(100, y, titulo)
-            pdf.drawString(300, y, str(item['cantidad']))
-            pdf.drawString(350, y, f"${item['precio_unitario']:.2f}")
-            pdf.drawString(450, y, f"${item['subtotal']:.2f}")
+            pdf.drawString(100, y_position, titulo)
+            pdf.drawString(300, y_position, str(item['cantidad']))
+            pdf.drawString(350, y_position, f"${item['precio_unitario']:.2f}")
+            pdf.drawString(450, y_position, f"${item['subtotal']:.2f}")
             
-            # Información adicional del libro si cabe
-            if y > 120:
-                info_extra = f"Autor: {item.get('autor', 'N/A')} | Género: {item.get('genero', 'N/A')}"
-                if len(info_extra) > 70:
-                    info_extra = info_extra[:67] + "..."
-                y -= 12
+            # Información adicional del libro
+            if y_position > 160:
+                info_extra = f"Autor: {item.get('autor', 'N/A')}"
+                if len(info_extra) > 50:
+                    info_extra = info_extra[:47] + "..."
+                y_position -= 12
                 pdf.setFont("Helvetica-Oblique", 8)
-                pdf.drawString(100, y, info_extra)
+                pdf.drawString(100, y_position, info_extra)
                 pdf.setFont("Helvetica", 9)
             
-            y -= 20
+            y_position -= 20
         
-        # Línea final
-        y -= 10
-        pdf.line(100, y, 500, y)
+        # Línea separadora
+        y_position -= 10
+        pdf.line(100, y_position, 500, y_position)
         
-        # Total
-        y -= 20
+        # Totales
+        subtotal = venta.get('subtotal', 0)
+        iva = venta.get('iva', 0)
+        total = venta.get('total', 0)
+        
+        y_position -= 20
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(350, y_position, f"Subtotal: ${subtotal:.2f}")
+        y_position -= 15
+        pdf.drawString(350, y_position, f"IVA (16%): ${iva:.2f}")
+        y_position -= 15
         pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(400, y, f"TOTAL: ${venta.get('total', 0):.2f}")
+        pdf.drawString(350, y_position, f"TOTAL: ${total:.2f}")
         
-        # Pie de página
-        y -= 40
+        # Pie de página con agradecimiento
+        y_position -= 40
         pdf.setFont("Helvetica-Oblique", 10)
-        pdf.drawString(100, y, "¡Gracias por su compra! - Biblioteca Digital")
-        pdf.drawString(100, y - 15, "Sistema de Gestión de Libros")
+        pdf.drawString(100, y_position, "¡Gracias por su compra en Biblioteca Digital!")
+        y_position -= 15
+        pdf.drawString(100, y_position, "Esperamos volver a servirle pronto.")
+        y_position -= 15
+        pdf.drawString(100, y_position, "Sistema de Gestión de Libros - Venta segura y confiable")
         
         pdf.save()
         buffer.seek(0)
@@ -723,7 +762,7 @@ def comprobante_venta(id):
     except Exception as e:
         return f"Error al generar comprobante: {e}", 500
 
-# ----------------- CLIENTE - CATÁLOGO Y CARRITO -----------------
+# ----------------- CLIENTE - CATÁLOGO Y CARRITO CON IVA -----------------
 
 @app.route('/catalogo')
 @cliente_required
@@ -799,11 +838,13 @@ def agregar_carrito():
 def ver_carrito():
     try:
         carrito = session.get('carrito', [])
-        total = sum(item['subtotal'] for item in carrito)
-        return render_template('carrito.html', carrito=carrito, total=total)
+        subtotal = sum(item['subtotal'] for item in carrito)
+        iva = calcular_iva(subtotal)
+        total = subtotal + iva
+        return render_template('carrito.html', carrito=carrito, subtotal=subtotal, iva=iva, total=total)
     except Exception as e:
         flash(f'Error al cargar carrito: {e}', 'error')
-        return render_template('carrito.html', carrito=[], total=0)
+        return render_template('carrito.html', carrito=[], subtotal=0, iva=0, total=0)
 
 @app.route('/carrito/actualizar', methods=['POST'])
 @cliente_required
@@ -832,11 +873,15 @@ def actualizar_carrito():
         session['carrito'] = carrito
         session.modified = True
         
-        total = sum(item['subtotal'] for item in carrito)
+        subtotal = sum(item['subtotal'] for item in carrito)
+        iva = calcular_iva(subtotal)
+        total = subtotal + iva
         
         return jsonify({
             'success': True, 
             'message': 'Carrito actualizado',
+            'subtotal': subtotal,
+            'iva': iva,
             'total': total
         })
         
@@ -881,7 +926,7 @@ def comprar_carrito():
             return redirect(url_for('ver_carrito'))
         
         items = []
-        total_venta = 0
+        subtotal_venta = 0
         
         # Verificar stock y preparar items
         for item_carrito in carrito:
@@ -905,7 +950,7 @@ def comprar_carrito():
                 'subtotal': item_carrito['subtotal']
             })
             
-            total_venta += item_carrito['subtotal']
+            subtotal_venta += item_carrito['subtotal']
             
             # Actualizar stock
             nuevo_stock = libro['stock'] - item_carrito['cantidad']
@@ -914,12 +959,18 @@ def comprar_carrito():
                 {'$set': {'stock': nuevo_stock}}
             )
         
-        # Crear venta con información completa
+        # Calcular IVA y total
+        iva_venta = calcular_iva(subtotal_venta)
+        total_venta = subtotal_venta + iva_venta
+        
+        # Crear venta con información completa e IVA
         venta = {
             'cliente_id': session['cliente_id'],
             'cliente_nombre': session['cliente_nombre'],
             'cliente_email': session['cliente_email'],
             'items': items,
+            'subtotal': subtotal_venta,
+            'iva': iva_venta,
             'total': total_venta,
             'fecha_venta': datetime.now(),
             'estado': 'completada',
@@ -932,7 +983,7 @@ def comprar_carrito():
         session['carrito'] = []
         session.modified = True
         
-        flash(f'¡Compra realizada exitosamente! Total: ${total_venta:.2f}', 'success')
+        flash(f'¡Compra realizada exitosamente! Total con IVA: ${total_venta:.2f}', 'success')
         return redirect(url_for('ver_compra', id=resultado.inserted_id))
         
     except Exception as e:
@@ -956,6 +1007,10 @@ def comprar_directo():
             return redirect(url_for('catalogo_cliente'))
         
         # Crear venta con información completa
+        subtotal = libro.get('precio', 0) * cantidad
+        iva = calcular_iva(subtotal)
+        total = subtotal + iva
+        
         items = [{
             'libro_id': str(libro['_id']),
             'titulo': libro['nombre'],
@@ -964,7 +1019,7 @@ def comprar_directo():
             'isbn': libro.get('isbn', ''),
             'cantidad': cantidad,
             'precio_unitario': libro.get('precio', 0),
-            'subtotal': libro.get('precio', 0) * cantidad
+            'subtotal': subtotal
         }]
         
         venta = {
@@ -972,7 +1027,9 @@ def comprar_directo():
             'cliente_nombre': session['cliente_nombre'],
             'cliente_email': session['cliente_email'],
             'items': items,
-            'total': libro.get('precio', 0) * cantidad,
+            'subtotal': subtotal,
+            'iva': iva,
+            'total': total,
             'fecha_venta': datetime.now(),
             'estado': 'completada',
             'tipo': 'online'
@@ -986,22 +1043,29 @@ def comprar_directo():
         )
         
         resultado = coleccion_ventas.insert_one(venta)
-        flash('¡Compra realizada exitosamente!', 'success')
+        flash(f'¡Compra realizada exitosamente! Total con IVA: ${total:.2f}', 'success')
         return redirect(url_for('ver_compra', id=resultado.inserted_id))
         
     except Exception as e:
         flash(f'Error al procesar compra: {e}', 'error')
         return redirect(url_for('catalogo_cliente'))
 
+# ----------------- MIS COMPRAS - CORREGIDA COMPLETAMENTE -----------------
+
 @app.route('/mis-compras')
 @cliente_required
 def mis_compras():
     try:
-        ventas_cursor = coleccion_ventas.find({'cliente_id': session['cliente_id']}).sort('fecha_venta', -1)
-        ventas = list(ventas_cursor)
+        # CORREGIDO: Convertir el cursor a lista correctamente
+        ventas_cursor = coleccion_ventas.find({'cliente_id': session['cliente_id']})
+        ventas = list(ventas_cursor)  # Convertir cursor a lista
+        
+        # Ordenar por fecha descendente
+        ventas.sort(key=lambda x: x['fecha_venta'], reverse=True)
+        
         return render_template('mis_compras.html', ventas=ventas)
     except Exception as e:
-        flash(f'Error al cargar compras: {e}', 'error')
+        flash(f'Error al cargar compras: {str(e)}', 'error')
         return render_template('mis_compras.html', ventas=[])
 
 @app.route('/mi-compra/<id>')
@@ -1018,8 +1082,136 @@ def ver_compra(id):
         flash(f'Error al cargar compra: {e}', 'error')
         return redirect(url_for('mis_compras'))
 
+# ----------------- COMPROBANTE PARA CLIENTES -----------------
+
+@app.route('/mi-compra/<id>/comprobante')
+@cliente_required
+def comprobante_cliente(id):
+    try:
+        venta = coleccion_ventas.find_one({'_id': ObjectId(id), 'cliente_id': session['cliente_id']})
+        if not venta:
+            flash('Compra no encontrada', 'error')
+            return redirect(url_for('mis_compras'))
+        
+        # Crear PDF
+        buffer = io.BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        
+        # Configuración inicial
+        pdf.setTitle(f"Comprobante de Compra - {venta['_id']}")
+        
+        # Encabezado
+        pdf.setFont("Helvetica-Bold", 18)
+        pdf.drawString(100, height - 50, "BIBLIOTECA DIGITAL")
+        pdf.setFont("Helvetica-Bold", 16)
+        pdf.drawString(100, height - 70, "COMPROBANTE DE COMPRA")
+        pdf.line(100, height - 75, 500, height - 75)
+        
+        # Información de la compra
+        y_position = height - 100
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(100, y_position, "INFORMACIÓN DE LA COMPRA:")
+        pdf.setFont("Helvetica", 10)
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Folio: {str(venta['_id'])}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Fecha: {venta['fecha_venta'].strftime('%d/%m/%Y')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Hora: {venta['fecha_venta'].strftime('%H:%M:%S')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Estado: {venta.get('estado', 'Completada')}")
+        
+        # Información del cliente
+        y_position -= 25
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(100, y_position, "INFORMACIÓN DEL CLIENTE:")
+        pdf.setFont("Helvetica", 10)
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Nombre: {venta.get('cliente_nombre', 'N/A')}")
+        y_position -= 15
+        pdf.drawString(100, y_position, f"Email: {venta.get('cliente_email', 'N/A')}")
+        
+        # Tabla de productos
+        y_position -= 30
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(100, y_position, "DETALLE DE PRODUCTOS:")
+        
+        # Encabezados de la tabla
+        y_position -= 20
+        pdf.setFont("Helvetica-Bold", 10)
+        pdf.drawString(100, y_position, "Producto")
+        pdf.drawString(300, y_position, "Cant.")
+        pdf.drawString(350, y_position, "Precio Unit.")
+        pdf.drawString(450, y_position, "Subtotal")
+        
+        y_position -= 10
+        pdf.line(100, y_position, 500, y_position)
+        y_position -= 10
+        
+        # Items de la venta
+        pdf.setFont("Helvetica", 9)
+        for item in venta.get('items', []):
+            if y_position < 150:  # Nueva página si es necesario
+                pdf.showPage()
+                y_position = height - 50
+                pdf.setFont("Helvetica", 9)
+            
+            # Título del libro
+            titulo = item['titulo']
+            if len(titulo) > 40:
+                titulo = titulo[:37] + "..."
+            
+            pdf.drawString(100, y_position, titulo)
+            pdf.drawString(300, y_position, str(item['cantidad']))
+            pdf.drawString(350, y_position, f"${item['precio_unitario']:.2f}")
+            pdf.drawString(450, y_position, f"${item['subtotal']:.2f}")
+            
+            y_position -= 20
+        
+        # Línea separadora
+        y_position -= 10
+        pdf.line(100, y_position, 500, y_position)
+        
+        # Totales
+        subtotal = venta.get('subtotal', 0)
+        iva = venta.get('iva', 0)
+        total = venta.get('total', 0)
+        
+        y_position -= 20
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(350, y_position, f"Subtotal: ${subtotal:.2f}")
+        y_position -= 15
+        pdf.drawString(350, y_position, f"IVA (16%): ${iva:.2f}")
+        y_position -= 15
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(350, y_position, f"TOTAL: ${total:.2f}")
+        
+        # Pie de página con agradecimiento
+        y_position -= 40
+        pdf.setFont("Helvetica-Oblique", 10)
+        pdf.drawString(100, y_position, "¡Gracias por su compra en Biblioteca Digital!")
+        y_position -= 15
+        pdf.drawString(100, y_position, "Esperamos volver a servirle pronto.")
+        y_position -= 15
+        pdf.drawString(100, y_position, "Para consultas: contacto@bibliotecadigital.com")
+        
+        pdf.save()
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"comprobante_compra_{id}.pdf",
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        return f"Error al generar comprobante: {e}", 500
+
 # ----------------- INICIALIZACIÓN -----------------
 
 if __name__ == '__main__':
     inicializar_datos()
     app.run(debug=True, host='0.0.0.0', port=5000)
+

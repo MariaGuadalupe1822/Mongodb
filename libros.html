@@ -239,14 +239,17 @@
             background-color: rgba(67, 97, 238, 0.05);
         }
 
-        .avatar {
+        .book-icon {
             width: 44px;
             height: 44px;
             border-radius: 8px;
-            object-fit: cover;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
             margin-right: 10px;
-            vertical-align: middle;
-            border: 2px solid var(--gray-light);
         }
 
         .cell-name {
@@ -471,8 +474,7 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Portada</th>
-                        <th>Información del Libro</th>
+                        <th>Libro</th>
                         <th>Género</th>
                         <th>Precio</th>
                         <th>Stock</th>
@@ -484,10 +486,10 @@
                 <tbody>
                     {% for libro in libros %}
                     <tr>
-                        <td data-label="Portada">
-                            <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="Book Cover" class="avatar">
-                        </td>
-                        <td data-label="Información del Libro" class="cell-name">
+                        <td data-label="Libro" class="cell-name">
+                            <div class="book-icon">
+                                <i class="fas fa-book"></i>
+                            </div>
                             <div>
                                 <div style="font-weight: 600; color: var(--dark);">{{ libro.nombre }}</div>
                                 <div style="font-size: 14px; color: var(--gray);">{{ libro.autor }}</div>
@@ -525,7 +527,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8">
+                        <td colspan="7">
                             <div class="empty-state">
                                 <i class="fas fa-book"></i>
                                 <h3>No hay libros en el catálogo</h3>

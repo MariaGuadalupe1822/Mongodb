@@ -47,6 +47,10 @@
             background-color: #17a2b8;
             color: white;
         }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
         .btn-secondary {
             background-color: #6c757d;
             color: white;
@@ -67,13 +71,47 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-online {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-presencial {
+            background-color: #007bff;
+            color: white;
+        }
+        .total-amount {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .totales-info {
+            font-size: 11px;
+            color: #666;
+        }
+        .items-list {
+            max-width: 200px;
+        }
+        .item-detail {
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header-actions">
             <h1>📦 Mis Compras</h1>
-            <a href="{{ url_for('catalogo_cliente') }}" class="btn btn-secondary">Volver al Catálogo</a>
+            <a href="{{ url_for('catalogo_cliente') }}" class="btn btn-secondary">← Volver al Catálogo</a>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -92,31 +130,50 @@
                     <tr>
                         <th>ID Compra</th>
                         <th>Fecha</th>
-                        <th>Total</th>
                         <th>Items</th>
+                        <th>Totales</th>
+                        <th>Tipo</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for venta in ventas %}
                     <tr>
-                        <td>{{ venta._id }}</td>
+                        <td><strong>{{ venta._id }}</strong></td>
                         <td>{{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>${{ "%.2f"|format(venta.total) }}</td>
-                        <td>
+                        <td class="items-list">
                             {% for item in venta.items %}
-                                {{ item.titulo }} ({{ item.cantidad }})<br>
+                            <div class="item-detail">
+                                • {{ item.titulo }} ({{ item.cantidad }})
+                            </div>
                             {% endfor %}
                         </td>
                         <td>
-                            <a href="{{ url_for('ver_compra', id=venta._id) }}" class="btn btn-info">Ver Detalles</a>
+                            <div class="total-amount">${{ "%.2f"|format(venta.total) }}</div>
+                            <div class="totales-info">
+                                Sub: ${{ "%.2f"|format(venta.subtotal) }}<br>
+                                IVA: ${{ "%.2f"|format(venta.iva) }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'online' if venta.tipo == 'online' else 'presencial' }}">
+                                {{ venta.tipo|default('online') }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('ver_compra', id=venta._id) }}" class="btn btn-info">👁️ Detalles</a>
+                            <a href="{{ url_for('comprobante_cliente', id=venta._id) }}" class="btn btn-primary" target="_blank">📄 Comprobante</a>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         {% else %}
-            <p>No has realizado ninguna compra.</p>
+            <div style="text-align: center; padding: 40px;">
+                <h3>No has realizado ninguna compra</h3>
+                <p>Explora nuestro catálogo y encuentra libros increíbles.</p>
+                <a href="{{ url_for('catalogo_cliente') }}" class="btn btn-primary">Explorar Catálogo</a>
+            </div>
         {% endif %}
     </div>
 </body>
