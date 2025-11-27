@@ -150,11 +150,47 @@
             background-color: #f8f9fa;
             font-weight: bold;
         }
+        /* AGREGADO: Estilos para búsqueda en ventas */
+        .search-section {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .libros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .libro-card {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .libro-card:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+        .libro-card.selected {
+            border-color: #28a745;
+            background: #d4edda;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>💰 Nueva Venta</h1>
+        <h1>💰 Nueva Venta Presencial</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -181,20 +217,27 @@
                 </div>
             </div>
 
-            <!-- Agregar Libros -->
+            <!-- Agregar Libros CON BÚSQUEDA -->
             <div class="form-section">
                 <h3>📚 Agregar Libros a la Venta</h3>
                 
-                <div class="form-group">
-                    <label for="libro_select">Seleccionar Libro:</label>
-                    <select id="libro_select">
-                        <option value="">-- Selecciona un libro --</option>
+                <!-- BÚSQUEDA AGREGADA -->
+                <div class="search-section">
+                    <label>Buscar libros:</label>
+                    <input type="text" id="searchLibros" class="search-input" 
+                           placeholder="Buscar por título, autor, ISBN o género...">
+                    
+                    <div class="libros-grid" id="resultadosLibros">
                         {% for libro in libros %}
-                            <option value="{{ libro._id }}" data-precio="{{ libro.precio }}" data-stock="{{ libro.stock }}">
-                                {{ libro.nombre }} - {{ libro.autor }} - ${{ "%.2f"|format(libro.precio) }} (Stock: {{ libro.stock }})
-                            </option>
+                        <div class="libro-card" onclick="seleccionarLibro('{{ libro._id }}', '{{ libro.nombre }}', {{ libro.precio }}, {{ libro.stock }})">
+                            <div><strong>{{ libro.nombre }}</strong></div>
+                            <div>Autor: {{ libro.autor }}</div>
+                            <div>Género: {{ libro.genero }}</div>
+                            <div>Precio: ${{ "%.2f"|format(libro.precio) }}</div>
+                            <div>Stock: {{ libro.stock }}</div>
+                        </div>
                         {% endfor %}
-                    </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -246,63 +289,74 @@
         let subtotal = 0;
         let iva = 0;
         let total = 0;
+        let libroSeleccionado = null;
 
-        function actualizarResumen() {
-            subtotal = librosAgregados.reduce((sum, libro) => sum + libro.subtotal, 0);
-            iva = subtotal * 0.16;
-            total = subtotal + iva;
+        // Búsqueda en tiempo real
+        document.getElementById('searchLibros').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const libros = document.querySelectorAll('.libro-card');
+            
+            libros.forEach(libro => {
+                const texto = libro.textContent.toLowerCase();
+                if (texto.includes(searchTerm)) {
+                    libro.style.display = 'block';
+                } else {
+                    libro.style.display = 'none';
+                }
+            });
+        });
 
-            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
-            document.getElementById('iva').textContent = `$${iva.toFixed(2)}`;
-            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
-
-            // Habilitar/deshabilitar botón de procesar venta
-            document.getElementById('btnProcesarVenta').disabled = librosAgregados.length === 0;
+        function seleccionarLibro(libroId, nombre, precio, stock) {
+            libroSeleccionado = { libroId, nombre, precio, stock };
+            
+            // Remover selección anterior
+            document.querySelectorAll('.libro-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Agregar selección actual
+            event.currentTarget.classList.add('selected');
+            
+            // Actualizar cantidad máxima
+            document.getElementById('cantidad_libro').max = stock;
+            document.getElementById('cantidad_libro').value = 1;
         }
 
         function agregarLibro() {
-            const libroSelect = document.getElementById('libro_select');
-            const cantidadInput = document.getElementById('cantidad_libro');
-            const libroId = libroSelect.value;
-            const cantidad = parseInt(cantidadInput.value);
-
-            if (!libroId) {
+            if (!libroSeleccionado) {
                 alert('Por favor selecciona un libro');
                 return;
             }
+
+            const cantidad = parseInt(document.getElementById('cantidad_libro').value);
 
             if (cantidad < 1) {
                 alert('La cantidad debe ser al menos 1');
                 return;
             }
 
-            const libroOption = libroSelect.options[libroSelect.selectedIndex];
-            const precio = parseFloat(libroOption.getAttribute('data-precio'));
-            const stock = parseInt(libroOption.getAttribute('data-stock'));
-            const libroNombre = libroOption.text.split(' - ')[0];
-
-            if (cantidad > stock) {
-                alert(`Stock insuficiente. Solo hay ${stock} unidades disponibles.`);
+            if (cantidad > libroSeleccionado.stock) {
+                alert(`Stock insuficiente. Solo hay ${libroSeleccionado.stock} unidades disponibles.`);
                 return;
             }
 
             // Verificar si el libro ya está agregado
-            const libroExistente = librosAgregados.find(libro => libro.libro_id === libroId);
+            const libroExistente = librosAgregados.find(libro => libro.libro_id === libroSeleccionado.libroId);
             if (libroExistente) {
                 const nuevaCantidad = libroExistente.cantidad + cantidad;
-                if (nuevaCantidad > stock) {
-                    alert(`No puedes agregar más de ${stock} unidades de este libro.`);
+                if (nuevaCantidad > libroSeleccionado.stock) {
+                    alert(`No puedes agregar más de ${libroSeleccionado.stock} unidades de este libro.`);
                     return;
                 }
                 libroExistente.cantidad = nuevaCantidad;
-                libroExistente.subtotal = precio * nuevaCantidad;
+                libroExistente.subtotal = libroSeleccionado.precio * nuevaCantidad;
             } else {
                 librosAgregados.push({
-                    libro_id: libroId,
-                    nombre: libroNombre,
-                    precio: precio,
+                    libro_id: libroSeleccionado.libroId,
+                    nombre: libroSeleccionado.nombre,
+                    precio: libroSeleccionado.precio,
                     cantidad: cantidad,
-                    subtotal: precio * cantidad
+                    subtotal: libroSeleccionado.precio * cantidad
                 });
             }
 
@@ -310,9 +364,11 @@
             actualizarResumen();
 
             // Limpiar selección
-            libroSelect.value = '';
-            cantidadInput.value = 1;
-            actualizarMaxCantidad();
+            libroSeleccionado = null;
+            document.querySelectorAll('.libro-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.getElementById('cantidad_libro').value = 1;
         }
 
         function actualizarListaLibros() {
@@ -387,40 +443,31 @@
             });
         }
 
+        function actualizarResumen() {
+            subtotal = librosAgregados.reduce((sum, libro) => sum + libro.subtotal, 0);
+            iva = subtotal * 0.16;
+            total = subtotal + iva;
+
+            document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('iva').textContent = `$${iva.toFixed(2)}`;
+            document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+
+            // Habilitar/deshabilitar botón de procesar venta
+            document.getElementById('btnProcesarVenta').disabled = librosAgregados.length === 0;
+        }
+
         function limpiarVenta() {
             if (confirm('¿Estás seguro de que quieres limpiar toda la venta?')) {
                 librosAgregados = [];
                 actualizarListaLibros();
                 actualizarResumen();
                 document.getElementById('cliente_id').value = '';
+                libroSeleccionado = null;
+                document.querySelectorAll('.libro-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
             }
         }
-
-        function actualizarMaxCantidad() {
-            const libroSelect = document.getElementById('libro_select');
-            const cantidadInput = document.getElementById('cantidad_libro');
-            const libroId = libroSelect.value;
-
-            if (libroId) {
-                const libroOption = libroSelect.options[libroSelect.selectedIndex];
-                const stock = parseInt(libroOption.getAttribute('data-stock'));
-                
-                // Considerar libros ya agregados
-                const libroAgregado = librosAgregados.find(libro => libro.libro_id === libroId);
-                const stockDisponible = libroAgregado ? stock - libroAgregado.cantidad : stock;
-                
-                cantidadInput.max = stockDisponible;
-                if (parseInt(cantidadInput.value) > stockDisponible) {
-                    cantidadInput.value = stockDisponible;
-                }
-            } else {
-                cantidadInput.max = 1;
-            }
-        }
-
-        // Event Listeners
-        document.getElementById('libro_select').addEventListener('change', actualizarMaxCantidad);
-        document.getElementById('cantidad_libro').addEventListener('input', actualizarMaxCantidad);
 
         // Inicializar
         actualizarListaLibros();

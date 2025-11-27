@@ -38,6 +38,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'usuario_id' not in session:
+            flash('Por favor inicia sesión como administrador', 'error')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -46,7 +47,17 @@ def cliente_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'cliente_id' not in session:
+            flash('Por favor inicia sesión como cliente', 'error')
             return redirect(url_for('login_cliente'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'usuario_id' not in session or session.get('usuario_rol') != 'administrador':
+            flash('No tienes permisos de administrador', 'error')
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -210,6 +221,7 @@ def dashboard():
 
 @app.route('/usuarios')
 @login_required
+@admin_required
 def listar_usuarios():
     try:
         usuarios = list(coleccion_usuarios.find({'activo': True}))
@@ -220,6 +232,7 @@ def listar_usuarios():
 
 @app.route('/usuarios/agregar', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def agregar_usuario():
     if request.method == 'POST':
         try:
@@ -247,6 +260,7 @@ def agregar_usuario():
 
 @app.route('/usuarios/editar/<id>', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def editar_usuario(id):
     try:
         usuario = coleccion_usuarios.find_one({'_id': ObjectId(id)})
@@ -286,6 +300,7 @@ def editar_usuario(id):
 
 @app.route('/usuarios/eliminar/<id>', methods=['POST'])
 @login_required
+@admin_required
 def eliminar_usuario(id):
     try:
         # No permitir eliminar el propio usuario
@@ -768,14 +783,25 @@ def comprobante_venta(id):
 @cliente_required
 def catalogo_cliente():
     try:
-        libros = list(coleccion_libros.find({'stock': {'$gt': 0}}))
+        query = request.args.get('q', '')
+        if query:
+            libros = list(coleccion_libros.find({
+                '$or': [
+                    {'nombre': {'$regex': query, '$options': 'i'}},
+                    {'autor': {'$regex': query, '$options': 'i'}}
+                ],
+                'stock': {'$gt': 0}
+            }))
+        else:
+            libros = list(coleccion_libros.find({'stock': {'$gt': 0}}))
+        
         # Inicializar carrito si no existe
         if 'carrito' not in session:
             session['carrito'] = []
-        return render_template('catalogo_cliente.html', libros=libros)
+        return render_template('catalogo_cliente.html', libros=libros, query=query)
     except Exception as e:
         flash(f'Error al cargar catálogo: {e}', 'error')
-        return render_template('catalogo_cliente.html', libros=[])
+        return render_template('catalogo_cliente.html', libros=[], query='')
 
 @app.route('/carrito/agregar', methods=['POST'])
 @cliente_required
@@ -1214,4 +1240,3 @@ def comprobante_cliente(id):
 if __name__ == '__main__':
     inicializar_datos()
     app.run(debug=True, host='0.0.0.0', port=5000)
-

@@ -5,121 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mis Compras</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        .btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            font-size: 14px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-info {
-            background-color: #17a2b8;
-            color: white;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .alert {
-            padding: 10px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-        }
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .badge-online {
-            background-color: #28a745;
-            color: white;
-        }
-        .badge-presencial {
-            background-color: #007bff;
-            color: white;
-        }
-        .total-amount {
-            font-weight: bold;
-            color: #28a745;
-        }
-        .totales-info {
-            font-size: 11px;
-            color: #666;
-        }
-        .items-list {
-            max-width: 200px;
-        }
-        .item-detail {
-            font-size: 12px;
-            margin-bottom: 2px;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin-bottom: 30px; }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; font-weight: bold; }
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-info { background-color: #17a2b8; color: white; }
+        .alert { padding: 10px; margin-bottom: 20px; border-radius: 5px; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .items-list { max-width: 200px; }
+        .item-detail { font-size: 12px; margin-bottom: 2px; }
+        .total-amount { font-weight: bold; color: #28a745; }
+        .empty-state { text-align: center; padding: 40px; color: #6c757d; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header-actions">
-            <h1>📦 Mis Compras</h1>
-            <a href="{{ url_for('catalogo_cliente') }}" class="btn btn-secondary">← Volver al Catálogo</a>
+            <h1>📋 Mis Compras</h1>
+            <a href="{{ url_for('catalogo_cliente') }}" class="btn btn-primary">← Volver al Catálogo</a>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
-                        {{ message }}
-                    </div>
+                    <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
@@ -128,11 +44,10 @@
             <table>
                 <thead>
                     <tr>
-                        <th>ID Compra</th>
+                        <th>ID Venta</th>
                         <th>Fecha</th>
                         <th>Items</th>
-                        <th>Totales</th>
-                        <th>Tipo</th>
+                        <th>Total</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -143,25 +58,12 @@
                         <td>{{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}</td>
                         <td class="items-list">
                             {% for item in venta.items %}
-                            <div class="item-detail">
-                                • {{ item.titulo }} ({{ item.cantidad }})
-                            </div>
+                            <div class="item-detail">• {{ item.titulo }} ({{ item.cantidad }})</div>
                             {% endfor %}
                         </td>
+                        <td class="total-amount">${{ "%.2f"|format(venta.total) }}</td>
                         <td>
-                            <div class="total-amount">${{ "%.2f"|format(venta.total) }}</div>
-                            <div class="totales-info">
-                                Sub: ${{ "%.2f"|format(venta.subtotal) }}<br>
-                                IVA: ${{ "%.2f"|format(venta.iva) }}
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge badge-{{ 'online' if venta.tipo == 'online' else 'presencial' }}">
-                                {{ venta.tipo|default('online') }}
-                            </span>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('ver_compra', id=venta._id) }}" class="btn btn-info">👁️ Detalles</a>
+                            <a href="{{ url_for('ver_compra', id=venta._id) }}" class="btn btn-info">👁️ Ver</a>
                             <a href="{{ url_for('comprobante_cliente', id=venta._id) }}" class="btn btn-primary" target="_blank">📄 Comprobante</a>
                         </td>
                     </tr>
@@ -169,9 +71,9 @@
                 </tbody>
             </table>
         {% else %}
-            <div style="text-align: center; padding: 40px;">
-                <h3>No has realizado ninguna compra</h3>
-                <p>Explora nuestro catálogo y encuentra libros increíbles.</p>
+            <div class="empty-state">
+                <h3>No tienes compras registradas</h3>
+                <p>Realiza tu primera compra para ver el historial aquí.</p>
                 <a href="{{ url_for('catalogo_cliente') }}" class="btn btn-primary">Explorar Catálogo</a>
             </div>
         {% endif %}

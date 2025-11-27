@@ -237,6 +237,18 @@
             border: 1px solid var(--warning);
         }
 
+        .alert-success {
+            background: rgba(76, 201, 240, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .alert-error {
+            background: rgba(247, 37, 133, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
         .quick-actions {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -304,6 +316,68 @@
             color: var(--danger);
             font-weight: 600;
         }
+
+        .recent-section {
+            margin-top: 40px;
+            background: var(--light);
+            padding: 25px;
+            border-radius: var(--border-radius);
+        }
+
+        .recent-section h3 {
+            color: var(--dark);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .recent-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+
+        .recent-table th,
+        .recent-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .recent-table th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .recent-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .recent-table tr:hover {
+            background: rgba(67, 97, 238, 0.05);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-admin {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .badge-empleado {
+            background-color: var(--primary);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -317,6 +391,11 @@
         <div class="user-profile">
             <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="User Avatar">
             <span>{{ session.usuario_nombre }}</span>
+            {% if session.usuario_rol == 'administrador' %}
+            <span class="badge badge-admin">Admin</span>
+            {% else %}
+            <span class="badge badge-empleado">Empleado</span>
+            {% endif %}
         </div>
     </div>
 
@@ -325,6 +404,9 @@
         <a href="{{ url_for('listar_libros') }}"><i class="fas fa-book"></i> Libros</a>
         <a href="{{ url_for('listar_clientes') }}"><i class="fas fa-users"></i> Clientes</a>
         <a href="{{ url_for('listar_ventas') }}"><i class="fas fa-shopping-cart"></i> Ventas</a>
+        {% if session.usuario_rol == 'administrador' %}
+        <a href="{{ url_for('listar_usuarios') }}"><i class="fas fa-user-cog"></i> Usuarios</a>
+        {% endif %}
         <a href="{{ url_for('logout') }}" style="float: right; color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
     </div>
 
@@ -338,7 +420,7 @@
             {% if messages %}
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category }}">
-                        <i class="fas fa-{% if category == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -394,6 +476,41 @@
         </div>
         {% endif %}
 
+        {% if ventas_recientes %}
+        <div class="recent-section">
+            <h3>
+                <i class="fas fa-history"></i>
+                Ventas Recientes
+            </h3>
+            <table class="recent-table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Total</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for venta in ventas_recientes %}
+                    <tr>
+                        <td><strong>{{ venta.cliente_nombre }}</strong></td>
+                        <td>{{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td><strong>${{ "%.2f"|format(venta.total) }}</strong></td>
+                        <td>
+                            {% if venta.tipo == 'online' %}
+                            <span class="badge badge-empleado">Online</span>
+                            {% else %}
+                            <span class="badge badge-admin">Presencial</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
         <div class="quick-actions">
             <a href="{{ url_for('agregar_libro') }}" class="action-card">
                 <i class="fas fa-plus-circle"></i>
@@ -411,7 +528,42 @@
                 <i class="fas fa-list"></i>
                 <h3>Ver Ventas</h3>
             </a>
+            {% if session.usuario_rol == 'administrador' %}
+            <a href="{{ url_for('listar_usuarios') }}" class="action-card">
+                <i class="fas fa-user-cog"></i>
+                <h3>Gestión de Usuarios</h3>
+            </a>
+            <a href="{{ url_for('agregar_usuario') }}" class="action-card">
+                <i class="fas fa-user-plus"></i>
+                <h3>Agregar Usuario</h3>
+            </a>
+            {% endif %}
         </div>
     </div>
+
+    <script>
+        // Animación para las tarjetas de estadísticas
+        document.addEventListener('DOMContentLoaded', function() {
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+
+        // Mostrar notificaciones temporales
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    alert.remove();
+                }, 500);
+            }, 5000);
+        });
+    </script>
 </body>
 </html>
