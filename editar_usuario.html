@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Usuarios - Biblioteca Digital</title>
+    <title>Editar Usuario - Biblioteca Digital</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -111,7 +111,7 @@
 
         .container {
             width: 95%;
-            max-width: 1400px;
+            max-width: 800px;
             margin: 30px auto;
             background-color: white;
             border-radius: var(--border-radius);
@@ -170,42 +170,56 @@
             border: 1px solid var(--danger);
         }
 
-        .table-container {
-            background: white;
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            box-shadow: var(--box-shadow);
+        .form-group {
             margin-bottom: 20px;
         }
 
-        .table {
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-control {
             width: 100%;
-            border-collapse: collapse;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: var(--transition);
         }
 
-        .table th,
-        .table td {
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--gray-light);
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
         }
 
-        .table th {
-            background: var(--primary);
-            color: white;
-            font-weight: 600;
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            background: white;
+            transition: var(--transition);
         }
 
-        .table tr:last-child td {
-            border-bottom: none;
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
         }
 
-        .table tr:hover {
-            background: rgba(67, 97, 238, 0.05);
+        .form-text {
+            color: var(--gray);
+            font-size: 14px;
+            margin-top: 4px;
         }
 
         .btn {
-            padding: 8px 16px;
+            padding: 12px 24px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -215,7 +229,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .btn-primary {
@@ -227,19 +241,34 @@
             background: var(--primary-dark);
         }
 
-        .btn-warning {
-            background: var(--warning);
+        .btn-secondary {
+            background: var(--gray);
             color: white;
         }
 
-        .btn-danger {
-            background: var(--danger);
-            color: white;
+        .btn-secondary:hover {
+            background: var(--dark);
         }
 
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .user-info {
+            background: rgba(76, 201, 240, 0.1);
+            border: 1px solid var(--success);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .user-info h3 {
+            color: var(--success);
+            margin-bottom: 8px;
+            font-size: 16px;
         }
 
         .badge {
@@ -257,25 +286,6 @@
         .badge-empleado {
             background-color: var(--primary);
             color: white;
-        }
-
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: var(--gray);
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            color: var(--gray-light);
         }
     </style>
 </head>
@@ -304,21 +314,16 @@
         <a href="{{ url_for('listar_clientes') }}"><i class="fas fa-users"></i> Clientes</a>
         <a href="{{ url_for('listar_ventas') }}"><i class="fas fa-shopping-cart"></i> Ventas</a>
         {% if session.usuario_rol == 'administrador' %}
-        <a href="{{ url_for('listar_usuarios') }}" class="active"><i class="fas fa-user-cog"></i> Usuarios</a>
+        <a href="{{ url_for('listar_usuarios') }}"><i class="fas fa-user-cog"></i> Usuarios</a>
         {% endif %}
         <a href="{{ url_for('logout') }}" style="float: right; color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
     </div>
 
     <div class="container">
-        <div class="header-actions">
-            <h1>
-                <i class="fas fa-user-cog"></i>
-                Gestión de Usuarios
-            </h1>
-            <a href="{{ url_for('agregar_usuario') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Agregar Usuario
-            </a>
-        </div>
+        <h1>
+            <i class="fas fa-edit"></i>
+            Editar Usuario
+        </h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -331,64 +336,49 @@
             {% endif %}
         {% endwith %}
 
-        {% if usuarios %}
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Email</th>
-                        <th>Rol</th>
-                        <th>Fecha Registro</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for usuario in usuarios %}
-                    <tr>
-                        <td>{{ usuario.nombre }}</td>
-                        <td>{{ usuario.email }}</td>
-                        <td>
-                            {% if usuario.rol == 'administrador' %}
-                            <span class="badge badge-admin">Administrador</span>
-                            {% else %}
-                            <span class="badge badge-empleado">Empleado</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ usuario.fecha_registro.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>
-                            <div style="display: flex; gap: 8px;">
-                                <a href="{{ url_for('editar_usuario', id=usuario._id) }}" class="btn btn-warning btn-sm">
-                                    <i class="fas fa-edit"></i> Editar
-                                </a>
-                                {% if usuario._id|string != session.usuario_id %}
-                                <form action="{{ url_for('eliminar_usuario', id=usuario._id) }}" method="POST" style="display: inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de eliminar este usuario?')">
-                                        <i class="fas fa-trash"></i> Eliminar
-                                    </button>
-                                </form>
-                                {% else %}
-                                <button class="btn btn-danger btn-sm" disabled title="No puedes eliminar tu propio usuario">
-                                    <i class="fas fa-trash"></i> Eliminar
-                                </button>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="user-info">
+            <h3><i class="fas fa-info-circle"></i> Información del Usuario</h3>
+            <p><strong>Fecha de registro:</strong> {{ usuario.fecha_registro.strftime('%d/%m/%Y %H:%M') }}</p>
+            <p><strong>Estado:</strong> <span class="badge {% if usuario.activo %}badge-success{% else %}badge-danger{% endif %}">
+                {{ 'Activo' if usuario.activo else 'Inactivo' }}
+            </span></p>
         </div>
-        {% else %}
-        <div class="empty-state">
-            <i class="fas fa-users"></i>
-            <h3>No hay usuarios registrados</h3>
-            <p>Comienza agregando el primer usuario al sistema.</p>
-            <a href="{{ url_for('agregar_usuario') }}" class="btn btn-primary" style="margin-top: 16px;">
-                <i class="fas fa-plus"></i> Agregar Usuario
-            </a>
-        </div>
-        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="nombre" class="form-label">Nombre Completo</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" value="{{ usuario.nombre }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" value="{{ usuario.email }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Nueva Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password">
+                <div class="form-text">Deja este campo vacío si no deseas cambiar la contraseña.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="rol" class="form-label">Rol</label>
+                <select class="form-select" id="rol" name="rol" required>
+                    <option value="empleado" {% if usuario.rol == 'empleado' %}selected{% endif %}>Empleado</option>
+                    <option value="administrador" {% if usuario.rol == 'administrador' %}selected{% endif %}>Administrador</option>
+                </select>
+                <div class="form-text">Los administradores tienen acceso completo al sistema.</div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Actualizar Usuario
+                </button>
+                <a href="{{ url_for('listar_usuarios') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancelar
+                </a>
+            </div>
+        </form>
     </div>
 
     <script>

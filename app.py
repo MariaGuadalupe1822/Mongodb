@@ -194,13 +194,16 @@ def dashboard():
         total_ventas = coleccion_ventas.count_documents({})
         
         inicio_mes = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        ventas_mes = list(coleccion_ventas.find({'fecha_venta': {'$gte': inicio_mes}}))
+        ventas_mes_cursor = coleccion_ventas.find({'fecha_venta': {'$gte': inicio_mes}})
+        ventas_mes = list(ventas_mes_cursor)
         total_ventas_mes = sum(venta.get('total', 0) for venta in ventas_mes)
         
         libros_stock_bajo = list(coleccion_libros.find({'stock': {'$lt': 5}}))
         
-        # Ventas recientes para el dashboard
-        ventas_recientes = list(coleccion_ventas.find().sort('fecha_venta', -1).limit(5))
+        # CORREGIDO: Ventas recientes para el dashboard
+        ventas_recientes_cursor = coleccion_ventas.find().sort('fecha_venta', -1).limit(5)
+        ventas_recientes = list(ventas_recientes_cursor)
+        
         for venta in ventas_recientes:
             if 'cliente_nombre' not in venta:
                 cliente = coleccion_clientes.find_one({'_id': ObjectId(venta['cliente_id'])})

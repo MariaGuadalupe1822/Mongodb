@@ -2,91 +2,320 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agregar Usuario</title>
+    <title>Agregar Usuario - Biblioteca Digital</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
         }
-        .container {
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-icon {
+            background: rgba(255, 255, 255, 0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 16px;
+            border-radius: 50px;
+            transition: var(--transition);
+        }
+
+        .header .user-profile:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .header .user-profile img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-menu {
             background: white;
-            padding: 30px;
-            border-radius: 10px;
+            padding: 15px 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
+
+        .nav-menu a {
+            margin-right: 20px;
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+
+        .nav-menu a:hover, .nav-menu a.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 800px;
+            margin: 30px auto;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
         h1 {
-            color: #333;
+            font-size: 28px;
+            color: var(--dark);
             margin-bottom: 30px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
+
+        h1 i {
+            color: var(--primary);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-warning {
+            background: rgba(248, 150, 30, 0.1);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .alert-success {
+            background: rgba(76, 201, 240, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .alert-error {
+            background: rgba(247, 37, 133, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
-        label {
+
+        .form-label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
         }
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        select {
+
+        .form-control {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-light);
+            border-radius: var(--border-radius);
             font-size: 16px;
-            box-sizing: border-box;
+            transition: var(--transition);
         }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            background: white;
+            transition: var(--transition);
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .form-text {
+            color: var(--gray);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
         .btn {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
         }
+
         .btn-primary {
-            background-color: #007bff;
+            background: var(--primary);
             color: white;
         }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
         .btn-secondary {
-            background-color: #6c757d;
+            background: var(--gray);
             color: white;
         }
-        .btn:hover {
-            opacity: 0.9;
+
+        .btn-secondary:hover {
+            background: var(--dark);
         }
-        .alert {
-            padding: 10px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-        }
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
+
         .form-actions {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            justify-content: flex-end;
             margin-top: 30px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-admin {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .badge-empleado {
+            background-color: var(--primary);
+            color: white;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <a href="{{ url_for('dashboard') }}" class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-book-open"></i>
+            </div>
+            Biblioteca Digital
+        </a>
+        <div class="user-profile">
+            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80" alt="User Avatar">
+            <span>{{ session.usuario_nombre }}</span>
+            {% if session.usuario_rol == 'administrador' %}
+            <span class="badge badge-admin">Admin</span>
+            {% else %}
+            <span class="badge badge-empleado">Empleado</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="nav-menu">
+        <a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-bar"></i> Dashboard</a>
+        <a href="{{ url_for('listar_libros') }}"><i class="fas fa-book"></i> Libros</a>
+        <a href="{{ url_for('listar_clientes') }}"><i class="fas fa-users"></i> Clientes</a>
+        <a href="{{ url_for('listar_ventas') }}"><i class="fas fa-shopping-cart"></i> Ventas</a>
+        {% if session.usuario_rol == 'administrador' %}
+        <a href="{{ url_for('listar_usuarios') }}"><i class="fas fa-user-cog"></i> Usuarios</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" style="float: right; color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+    </div>
+
     <div class="container">
-        <h1>👥 Agregar Nuevo Usuario</h1>
+        <h1>
+            <i class="fas fa-user-plus"></i>
+            Agregar Usuario
+        </h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'error' if category == 'error' else 'success' }}">
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -95,33 +324,53 @@
 
         <form method="POST">
             <div class="form-group">
-                <label for="nombre">Nombre Completo:</label>
-                <input type="text" id="nombre" name="nombre" required>
+                <label for="nombre" class="form-label">Nombre Completo</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" required>
             </div>
 
             <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required>
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
             </div>
 
             <div class="form-group">
-                <label for="password">Contraseña:</label>
-                <input type="password" id="password" name="password" required>
+                <label for="password" class="form-label">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+                <div class="form-text">La contraseña debe tener al menos 6 caracteres.</div>
             </div>
 
             <div class="form-group">
-                <label for="rol">Rol:</label>
-                <select id="rol" name="rol" required>
+                <label for="rol" class="form-label">Rol</label>
+                <select class="form-select" id="rol" name="rol" required>
                     <option value="empleado">Empleado</option>
                     <option value="administrador">Administrador</option>
                 </select>
+                <div class="form-text">Los administradores tienen acceso completo al sistema.</div>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Crear Usuario</button>
-                <a href="{{ url_for('listar_usuarios') }}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Guardar Usuario
+                </button>
+                <a href="{{ url_for('listar_usuarios') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancelar
+                </a>
             </div>
         </form>
     </div>
+
+    <script>
+        // Mostrar notificaciones temporales
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    alert.remove();
+                }, 500);
+            }, 5000);
+        });
+    </script>
 </body>
 </html>
